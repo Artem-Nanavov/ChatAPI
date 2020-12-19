@@ -1,0 +1,26 @@
+version: '3.1'
+
+services: 
+  api:
+    container_name: api
+    build: .
+    ports: 
+      - "8080:8080"
+      - "8000:8000"
+    volumes: 
+      - .:/workdir
+    env_file: ./.env.example
+
+    command: go run main.go
+
+    depends_on: 
+      - db
+
+  db:
+    container_name: db
+    image: postgres:12 
+    restart: always
+    environment: 
+      POSTGRES_PASSWORD: 1234
+    volumes: 
+      - /var/lib/postgresql:/var/lib/postgresql
