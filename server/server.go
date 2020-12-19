@@ -133,7 +133,7 @@ func (s *Server) GetRouting() *routing.Router {
 	user.Get("/", s.BaseMiddleware(s.AuthenticationMiddleware(s.GetAllUsers())))
 
 	chat := router.Group("/chats")
-	chat.Post("/create", s.BaseMiddleware(s.CreateChat()))
+	chat.Post("/create", s.BaseMiddleware(s.AuthenticationMiddleware(s.CreateChat())))
 
 	return router
 }
