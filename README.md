@@ -13,6 +13,12 @@ Request data:
     text: string
     chat_id: int
     owner_id: int
+
+Response data:
+    id: int
+    text: string
+    chat_id: int
+    owner_id: int
 ~~~~
 
 

@@ -112,7 +112,10 @@ func (s *Server) BaseMiddleware(handler routing.Handler) routing.Handler {
 	return func(c *routing.Context) error {
 		c.Response.Header.Set("Access-Control-Allow-Credentials", "true")
 		c.Response.Header.SetBytesV("Access-Control-Allow-Origin", c.Request.Header.Peek("Origin"))
+		c.Request.Header.Set("Content-Type", "application/json")
+
 		handler(c)
+
 		s.config.Logger.Info(
 			string(string(c.Request.URI().Path()) + " - " + string(c.Request.Header.Method())),
 		)
@@ -134,6 +137,7 @@ func (s *Server) GetRouting() *routing.Router {
 
 	chat := router.Group("/chats")
 	chat.Post("/create", s.BaseMiddleware(s.AuthenticationMiddleware(s.CreateChat())))
+	chat.Get("/messages", s.BaseMiddleware(s.AuthenticationMiddleware(s.GetAllChatMessages())))
 
 	return router
 }
