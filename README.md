@@ -100,3 +100,23 @@ Response data:
     id: int
     name: string
 ~~~~
+
+`/chats/messages?id=`
+~~~~
+Method:
+    GET
+
+Permissions:
+    Only authorized users
+
+Request query data:
+    id: int
+
+Response data:
+Array of:
+    id: int
+    text: string
+    owner_id: int
+    chat_id: int
+    created_at: time
+~~~~
