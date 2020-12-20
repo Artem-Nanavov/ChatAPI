@@ -31,8 +31,10 @@ func (s *Server) RegistrationHandler() routing.Handler {
 		cookie.SetPath("/")
 		c.Response.Header.SetCookie(&cookie)
 
-		return utils.Respond(c, 201, map[string]interface{}{
-			"token": token,
+		return utils.Respond(c, 200, map[string]interface{}{
+			"token":    token,
+			"username": user.Username,
+			"id":       user.ID,
 		})
 	}
 }
@@ -80,7 +82,9 @@ func (s *Server) LoginHandler() routing.Handler {
 		c.Response.Header.SetCookie(&cookie)
 
 		return utils.Respond(c, 200, map[string]interface{}{
-			"token": token,
+			"token":    token,
+			"username": user.Username,
+			"id":       user.ID,
 		})
 	}
 }

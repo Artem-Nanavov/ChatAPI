@@ -23,7 +23,9 @@ func main() {
 
 	// Chat
 	wschat := chat.NewWebSocketChat(db, &chat.Config{
-		Port: utils.GetEnv("WEBSOCKET_PORT", "8000"),
+		Port:      utils.GetEnv("WEBSOCKET_PORT", "8000"),
+		JWTSecret: utils.GetEnv("JWTSECRET", "asdasdasdasd"),
+		Salt:      utils.GetEnv("SALT", "asdasdasdasd"),
 	})
 
 	// Server

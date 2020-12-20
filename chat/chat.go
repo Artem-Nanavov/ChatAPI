@@ -3,7 +3,6 @@ package chat
 import (
 	"api/database"
 	"api/entities"
-	"encoding/json"
 
 	"github.com/fasthttp/websocket"
 	"github.com/sirupsen/logrus"
@@ -12,8 +11,10 @@ import (
 
 // Config ...
 type Config struct {
-	Port   string
-	Logger *logrus.Logger
+	Port      string
+	Logger    *logrus.Logger
+	Salt      string
+	JWTSecret string
 }
 
 // WebSocketChat ...
@@ -36,32 +37,38 @@ func NewWebSocketChat(db *database.Database, config *Config) *WebSocketChat {
 func (w *WebSocketChat) handler() fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		upgrader := websocket.FastHTTPUpgrader{}
-
 		upgrader.CheckOrigin = func(ctx *fasthttp.RequestCtx) bool { return true }
 		upgrader.Upgrade(ctx, func(ws *websocket.Conn) {
-			defer ws.Close()
 			for {
-				messageType, p, _ := ws.ReadMessage()
-
 				var message *entities.Message
-				if err := json.Unmarshal(p, &message); err != nil {
-					data, _ := json.Marshal(map[string]interface{}{
-						"error": "Cannot serialize data",
+
+				ws.SetCloseHandler(func(code int, text string) error {
+					return ws.WriteJSON(map[string]interface{}{
+						"connection": "closed",
 					})
-					ws.WriteMessage(messageType, data)
+				})
+
+				if err := ws.ReadJSON(&message); err != nil {
+					ws.WriteJSON(map[string]interface{}{
+						"error": err.Error(),
+					})
 					continue
 				}
 
 				if err := w.db.Message().Create(message); err != nil {
-					data, _ := json.Marshal(map[string]interface{}{
+					ws.WriteJSON(map[string]interface{}{
 						"error": err.Error(),
 					})
-					ws.WriteMessage(messageType, data)
 					continue
 				}
 
-				data, _ := json.Marshal(message)
-				ws.WriteMessage(messageType, data)
+				user, _ := w.db.User().FindByID(message.OwnerID)
+
+				ws.WriteJSON(map[string]interface{}{
+					"text":       message.Text,
+					"created_at": message.CreatedAt,
+					"username":   user.Username,
+				})
 			}
 		})
 	}

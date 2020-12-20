@@ -20,6 +20,7 @@ func NewMessageRepo(db *sql.DB) *MessageRepo {
 
 // Create ...
 func (m *MessageRepo) Create(message *entities.Message) error {
+	message.CreatedAt = time.Now()
 	return m.db.QueryRow(`INSERT INTO messages (text, owner_id, chat_id, created_at) VALUES ($1, $2, $3, $4) RETURNING id`,
 		message.Text, message.OwnerID, message.ChatID, time.Now()).Scan(&message.ID)
 }

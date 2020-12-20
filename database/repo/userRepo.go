@@ -26,6 +26,7 @@ func (u *UserRepo) FindByID(id int) (*entities.User, error) {
 		&user.Email,
 		&user.Username,
 		&user.Password,
+		&user.IsOnline,
 	); err != nil {
 		return nil, err
 	}
@@ -42,6 +43,7 @@ func (u *UserRepo) FindByEmail(email string) (*entities.User, error) {
 		&user.Email,
 		&user.Username,
 		&user.Password,
+		&user.IsOnline,
 	); err != nil {
 		return nil, err
 	}
@@ -75,19 +77,40 @@ func (u *UserRepo) GetAll() ([]*entities.User, error) {
 			email    string
 			username string
 			password string
+			isOnline bool
 		)
 
-		if err := rows.Scan(&id, &email, &username, &password); err != nil {
+		if err := rows.Scan(&id, &email, &username, &password, &isOnline); err != nil {
 			return nil, err
 		}
-
 		user := &entities.User{
 			ID:       id,
 			Email:    email,
 			Username: username,
+			IsOnline: isOnline,
 		}
 
 		users = append(users, user)
 	}
 	return users, nil
+}
+
+// GoOnline ...
+func (u *UserRepo) GoOnline(user *entities.User) error {
+	_, err := u.db.Exec(`UPDATE users SET is_online=true WHERE id=$1`, user.ID)
+	if err != nil {
+		return err
+	}
+	user.IsOnline = true
+	return nil
+}
+
+// GoOfline ...
+func (u *UserRepo) GoOfline(user *entities.User) error {
+	_, err := u.db.Exec(`UPDATE users SET is_online=false WHERE id=$1`, user.ID)
+	if err != nil {
+		return err
+	}
+	user.IsOnline = false
+	return nil
 }
