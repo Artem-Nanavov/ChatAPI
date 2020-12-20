@@ -10,7 +10,8 @@ import (
 func main() {
 	// Database
 	db := database.NewDatabase(&database.Config{
-		DSN: utils.GetEnv("DSN", "user=postgres password=1234 dbname=postgres port=5432 host=localhost sslmode=disable"),
+		DSN: utils.GetEnv(
+			"DSN", "user=postgres password=1234 dbname=postgres port=5432 host=localhost sslmode=disable"),
 	})
 	if err := db.Open(); err != nil {
 		return
