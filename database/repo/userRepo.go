@@ -88,6 +88,7 @@ func (u *UserRepo) GetAll() ([]*entities.User, error) {
 			Email:    email,
 			Username: username,
 			IsOnline: isOnline,
+			Password: password,
 		}
 
 		users = append(users, user)

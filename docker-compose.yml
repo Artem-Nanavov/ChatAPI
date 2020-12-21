@@ -11,7 +11,7 @@ services:
       - .:/workdir
     env_file: ./.env.example
 
-    command: go run main.go
+    command: go run cmd/api/main.go
 
     depends_on: 
       - db

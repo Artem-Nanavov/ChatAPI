@@ -1,7 +1,6 @@
 package main
 
 import (
-	"api/chat"
 	"api/database"
 	"api/server"
 	"api/utils"
@@ -21,25 +20,12 @@ func main() {
 	}
 	defer db.Close()
 
-	// Chat
-	wschat := chat.NewWebSocketChat(db, &chat.Config{
-		Port:      utils.GetEnv("WEBSOCKET_PORT", "8000"),
-		JWTSecret: utils.GetEnv("JWTSECRET", "asdasdasdasd"),
-		Salt:      utils.GetEnv("SALT", "asdasdasdasd"),
-	})
-
 	// Server
 	serv := server.NewServer(db, &server.Config{
 		Port:      utils.GetEnv("PORT", "8080"),
 		JWTSecret: utils.GetEnv("JWTSECRET", "asdasdasdasd"),
 		Salt:      utils.GetEnv("SALT", "asdasdasdasd"),
 	})
-
-	go func() {
-		if err := wschat.Run(); err != nil {
-			return
-		}
-	}()
 
 	if err := serv.Run(); err != nil {
 		return

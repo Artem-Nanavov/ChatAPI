@@ -3,11 +3,7 @@ package server
 import (
 	"api/database"
 	"api/services"
-	"api/utils"
-	"fmt"
-	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	routing "github.com/qiangxue/fasthttp-routing"
 	"github.com/sirupsen/logrus"
 	"github.com/valyala/fasthttp"
@@ -67,62 +63,6 @@ func (s *Server) User() *services.UserService {
 	return s.userService
 }
 
-// AuthenticationMiddleware ...
-func (s *Server) AuthenticationMiddleware(handler routing.Handler) routing.Handler {
-	return func(c *routing.Context) error {
-		head := string(c.Request.Header.Peek("Authorization"))
-
-		splited := strings.Split(head, " ")
-		if len(splited) != 2 {
-			return utils.Respond(c, 401, map[string]interface{}{
-				"error": "Authentication credentials were not provided",
-			})
-		}
-
-		token, err := jwt.Parse(splited[1], func(t *jwt.Token) (interface{}, error) {
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("Unexpected signing method, got " + t.Header["alg"].(string))
-			}
-			return []byte(s.config.JWTSecret), nil
-		})
-
-		if err != nil {
-			return utils.Respond(c, 401, map[string]interface{}{
-				"error": err.Error(),
-			})
-		}
-
-		claims := token.Claims.(jwt.MapClaims)
-		id := claims["id"].(float64)
-		user, err := s.db.User().FindByID(int(id))
-		if err != nil {
-			return utils.Respond(c, 401, map[string]interface{}{
-				"error": err.Error(),
-			})
-		}
-
-		c.Set("user", user)
-		handler(c)
-		return nil
-	}
-}
-
-// BaseMiddleware ...
-func (s *Server) BaseMiddleware(handler routing.Handler) routing.Handler {
-	return func(c *routing.Context) error {
-		c.Response.Header.Set("Access-Control-Allow-Credentials", "true")
-		c.Response.Header.SetBytesV("Access-Control-Allow-Origin", c.Request.Header.Peek("Origin"))
-		c.Request.Header.Set("Content-Type", "application/json")
-
-		handler(c)
-
-		s.config.Logger.Info(
-			string(string(c.Request.URI().Path()) + " - " + string(c.Request.Header.Method())),
-		)
-		return nil
-	}
-}
-
 // GetRouting ...
 func (s *Server) GetRouting() *routing.Router {
 	router := routing.New()
@@ -132,12 +72,13 @@ func (s *Server) GetRouting() *routing.Router {
 	auth.Post("/login", s.BaseMiddleware(s.LoginHandler()))
 
 	user := router.Group("/users")
-	user.Get("/me", s.BaseMiddleware(s.AuthenticationMiddleware(s.GetCurrentUser())))
-	user.Get("/", s.BaseMiddleware(s.AuthenticationMiddleware(s.GetAllUsers())))
+	user.Get("/me", s.BaseMiddleware(s.AuthenticationMiddleware(s.GetCurrentUser(), false)))
+	user.Get("/", s.BaseMiddleware(s.AuthenticationMiddleware(s.GetAllUsers(), false)))
 
 	chat := router.Group("/chats")
-	chat.Post("/create", s.BaseMiddleware(s.AuthenticationMiddleware(s.CreateChat())))
-	chat.Get("/messages", s.BaseMiddleware(s.AuthenticationMiddleware(s.GetAllChatMessages())))
+	chat.Post("/create", s.BaseMiddleware(s.AuthenticationMiddleware(s.CreateChat(), false)))
+	chat.Get("/messages", s.BaseMiddleware(s.AuthenticationMiddleware(s.GetAllChatMessages(), false)))
+	chat.Any("/ws", s.BaseMiddleware(s.AuthenticationMiddleware(s.Websocket(), true)))
 
 	return router
 }

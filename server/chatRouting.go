@@ -5,7 +5,9 @@ import (
 	"api/utils"
 	"encoding/json"
 
+	"github.com/fasthttp/websocket"
 	routing "github.com/qiangxue/fasthttp-routing"
+	"github.com/valyala/fasthttp"
 )
 
 // CreateChat ...
@@ -45,5 +47,47 @@ func (s *Server) GetAllChatMessages() routing.Handler {
 		}
 
 		return utils.Respond(c, 200, messages)
+	}
+}
+
+// Websocket ...
+func (s *Server) Websocket() routing.Handler {
+	return func(c *routing.Context) error {
+		upgrader := websocket.FastHTTPUpgrader{}
+		upgrader.CheckOrigin = func(ctx *fasthttp.RequestCtx) bool { return true }
+		upgrader.Upgrade(c.RequestCtx, func(ws *websocket.Conn) {
+			// Request user goes online
+			user := c.Get("user").(*entities.User)
+			s.db.User().GoOnline(user)
+
+			defer ws.Close()
+			for {
+				var message *entities.Message
+
+				if err := ws.ReadJSON(&message); err != nil {
+					ws.WriteJSON(map[string]interface{}{
+						"error": err.Error(),
+					})
+					s.db.User().GoOfline(user)
+					break
+				}
+
+				message.OwnerID = user.ID
+
+				if err := s.db.Message().Create(message); err != nil {
+					ws.WriteJSON(map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ws.WriteJSON(map[string]interface{}{
+					"text":       message.Text,
+					"created_at": message.CreatedAt,
+					"username":   user.Username,
+				})
+			}
+		})
+		return nil
 	}
 }
